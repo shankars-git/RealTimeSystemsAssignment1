@@ -8,7 +8,7 @@ procedure cyclic is
         -- change/add your declarations here
         d: Duration := 1.0;
 		IsF3: Boolean := False; -- Flag to control f3 execution
-	Start_Time: Time := Clock;
+	Start_Time: Time ;
 	s: Integer := 0;
         
 
@@ -39,14 +39,13 @@ procedure cyclic is
 			    Start_Time := Clock; 
                 f1;
 				f2;
-				delay until 0.5 + Clock;
+				delay until Start_Time + d;
 				if IsF3 then
 					f3;
 					IsF3 := False;
 				else
 					IsF3 := True;
 				end if;
-				delay d;
+				delay until Start_Time + d;
         end loop;
 end cyclic;
-
