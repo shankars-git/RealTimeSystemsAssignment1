@@ -11,7 +11,7 @@ procedure comm1 is
     Message : constant String := "Process communication";
     RanGen  : Generator;
 
-    type BufferArray is array (0 .. 20) of Integer;
+    type BufferArray is array (0 .. 9) of Integer;
 
     task buffer is
         entry Enqueue (Int : in Integer);
@@ -38,14 +38,14 @@ procedure comm1 is
             select when Count < Data'Length =>
                 accept Enqueue (Int : in Integer) do
                     Data (Rear) := Int;
-                    Rear        := (Rear mod Data'Length) + 1;
+                    Rear        := (Rear + 1) mod Data'Length;
                     Count       := Count + 1;
                 end Enqueue;
 
             or when Count > 0 =>
                 accept Dequeue (Int : out Integer) do
                     Int   := Data (Front);
-                    Front := (Front mod Data'Length) + 1;
+                    Front := (Front + 1) mod Data'Length;
                     Count := Count - 1;
                 end Dequeue;
 
@@ -78,10 +78,11 @@ procedure comm1 is
                 delay until Clock + DelayTime;
             end select;
 
+            Put_Line ("producer queueing:" & Integer'Image (Next));
+
             buffer.Enqueue (Next);
             Next := Next + 1;
 
-            Put_Line ("producer queued:" & Integer'Image (Next));
         end loop;
     end producer;
 
@@ -112,8 +113,7 @@ procedure comm1 is
 
     exception
         when Tasking_Error =>
-            Put_Line ("buffer finished before producer");
-            Put_Line ("ending the consumer");
+            Put_Line ("Tasking Error");
     end consumer;
 
 begin

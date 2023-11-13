@@ -11,7 +11,7 @@ procedure comm2 is
     Message : constant String := "Protected Object";
     RanGen  : Generator;
 
-    type BufferArray is array (0 .. 20) of Integer;
+    type BufferArray is array (0 .. 9) of Integer;
 
     protected buffer is
         entry Enqueue (Int : in Integer);
@@ -31,14 +31,14 @@ procedure comm2 is
         entry Enqueue (Int : in Integer) when Count < Data'Length is
         begin
             Data (Rear) := Int;
-            Rear        := (Rear mod Data'Length) + 1;
+            Rear        := (Rear + 1) mod Data'Length;
             Count       := Count + 1;
         end Enqueue;
 
         entry Dequeue (Int : out Integer) when Count > 0 is
         begin
             Int   := Data (Front);
-            Front := (Front mod Data'Length) + 1;
+            Front := (Front + 1) mod Data'Length;
             Count := Count - 1;
         end Dequeue;
 
