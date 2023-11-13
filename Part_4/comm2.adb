@@ -63,11 +63,13 @@ procedure comm2 is
                 delay until Clock + DelayTime;
             end select;
 
+            Put_Line ("producer queueing:" & Integer'Image (Next));
+
             buffer.Enqueue (Next);
             Next := Next + 1;
 
-            Put_Line ("producer queued:" & Integer'Image (Next));
         end loop;
+        Put_Line ("Producer finished");
     end producer;
 
     task body consumer is
@@ -92,7 +94,7 @@ procedure comm2 is
             delay until Clock + DelayTime;
         end loop Main_Cycle;
 
-        Put_Line ("Ending the consumer");
+        Put_Line ("Consumer finished");
 
         producer.Finish;
 

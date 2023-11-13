@@ -57,6 +57,7 @@ procedure comm1 is
             end select;
 
         end loop;
+        Put_Line ("Buffer finished");
     end buffer;
 
     task body producer is
@@ -84,6 +85,7 @@ procedure comm1 is
             Next := Next + 1;
 
         end loop;
+        Put_Line ("Producer finished");
     end producer;
 
     task body consumer is
@@ -108,8 +110,10 @@ procedure comm1 is
             delay until Clock + DelayTime;
         end loop Main_Cycle;
 
-        buffer.Finish;
         producer.Finish;
+        buffer.Finish;
+
+        Put_Line ("Consumer finished");
 
     exception
         when Tasking_Error =>
