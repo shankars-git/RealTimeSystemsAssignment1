@@ -3,14 +3,23 @@
 with Ada.Calendar;
 with Ada.Text_IO;
 with Ada.Numerics.Discrete_Random;
+with Ada.Numerics.Float_Random;
 use Ada.Calendar;
 use Ada.Text_IO;
+use Ada.Numerics.Float_Random;
 
 procedure comm1 is
     Message : constant String := "Process communication";
-
+	
+	function random_delay(min, max : Float) return Duration is
+    gen : Generator;
+    begin
+      Reset(gen);
+      return Duration(min + Random(gen) * (max - min));
+    end random_delay;
+  
     task buffer is
-        entry Enqueue (Int : Integer);
+        entry Enqueue (Int : in Integer);
         entry Dequeue (Int : out Integer);
         entry Finish;
     end buffer;
@@ -59,6 +68,8 @@ procedure comm1 is
         Message  : constant String := "producer executing";
         Next     : Integer         := 0;
         Finished : Boolean         := False;
+	    Min_Delay : constant Float := 2.0;
+		Max_Delay : constant Float := 5.0;
     begin
         Put_Line (Message);
 
@@ -68,10 +79,8 @@ procedure comm1 is
                     Finished := True;
                 end Finish;
             or
-                -- TODO should delay for a random amount of time.
-                delay 0.1;
+				delay until Clock + random_delay(Min_Delay, Max_Delay) ;
             end select;
-
             buffer.Enqueue (Next);
             Put_Line ("producer queued:" & Integer'Image (Next));
             Next := Next + 1;
@@ -95,7 +104,6 @@ procedure comm1 is
             delay 0.1;
         end loop Main_Cycle;
 
-        buffer.Finish;
         producer.Finish;
 
     exception
