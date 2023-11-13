@@ -4,12 +4,11 @@ use Ada.Calendar;
 use Ada.Text_IO;
 
 procedure cyclic is
-    Message        : constant String := "Cyclic scheduler";
+    Message        : constant String   := "Cyclic scheduler";
     -- change/add your declarations here
-    d              : Duration        := 1.0;
-    Start_Time     : Time            := Clock;
-    Execution_Time : Time;
-    s              : Integer         := 0;
+    Half_Second    : constant Duration := 0.5;
+    Start_Time     : Time              := Clock;
+    Cycle_End_Time : Time;
 
     procedure f1 is
         Message : constant String := "f1 executing, time is now";
@@ -33,13 +32,14 @@ procedure cyclic is
     end f3;
 
 begin
+    Cycle_End_Time := Clock;
     loop
-        -- change/add your code inside this loop
-        Execution_Time := Clock;
+        -- add one second from previous cycle end/start to get next cycle end/start
+        Cycle_End_Time := Cycle_End_Time + (2 * Half_Second);
         f1;
         f2;
-        delay until Execution_Time + 0.5;
+        delay until Cycle_End_Time - Half_Second;
         f3;
-        delay until Execution_Time + d;
+        delay until Cycle_End_Time;
     end loop;
 end cyclic;
