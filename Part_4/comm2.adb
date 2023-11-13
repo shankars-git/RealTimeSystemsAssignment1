@@ -2,56 +2,102 @@
 
 with Ada.Calendar;
 with Ada.Text_IO;
-with Ada.Numerics.Discrete_Random;
+with Ada.Numerics.Float_Random;
 use Ada.Calendar;
 use Ada.Text_IO;
+use Ada.Numerics.Float_Random;
 
 procedure comm2 is
-    Message: constant String := "Protected Object";
-    	type BufferArray is array (0 .. 9) of Integer;
-        -- protected object declaration
-	protected  buffer is
-            -- add entries of protected object here 
-	private
-            -- add local declarations
-	end buffer;
+    Message : constant String := "Protected Object";
+    RanGen  : Generator;
 
-	task producer is
-		-- add task entries
-	end producer;
+    type BufferArray is array (0 .. 20) of Integer;
 
-	task consumer is
-                -- add task entries
-	end consumer;
+    protected buffer is
+        entry Enqueue (Int : in Integer);
+        entry Dequeue (Int : out Integer);
+    private
+        Data               : BufferArray;
+        Front, Rear, Count : Natural := 0;
+    end buffer;
 
-	protected body buffer is 
-              -- add definitions of protected entries here 
-	end buffer;
+    task producer is
+        entry Finish;
+    end producer;
 
-        task body producer is 
-		Message: constant String := "producer executing";
-                -- add local declrations of task here  
-	begin
-		Put_Line(Message);
-		loop
-                -- add your task code inside this loop     
-		end loop;
-	end producer;
+    task consumer;
 
-	task body consumer is 
-		Message: constant String := "consumer executing";
-                -- add local declrations of task here 
-	begin
-		Put_Line(Message);
-		Main_Cycle:
-		loop 
-                -- add your task code inside this loop   
-		end loop Main_Cycle; 
+    protected body buffer is
+        entry Enqueue (Int : in Integer) when Count < Data'Length is
+        begin
+            Data (Rear) := Int;
+            Rear        := (Rear mod Data'Length) + 1;
+            Count       := Count + 1;
+        end Enqueue;
 
-                -- add your code to stop executions of other tasks     
-		Put_Line("Ending the consumer");
-	end consumer;
+        entry Dequeue (Int : out Integer) when Count > 0 is
+        begin
+            Int   := Data (Front);
+            Front := (Front mod Data'Length) + 1;
+            Count := Count - 1;
+        end Dequeue;
+
+    end buffer;
+
+    task body producer is
+        Message   : constant String := "producer executing";
+        Next      : Integer         := 0;
+        Finished  : Boolean         := False;
+        DelayTime : Duration;
+    begin
+        Put_Line (Message);
+        Reset (RanGen);
+
+        while Next <= 20 and not Finished loop
+            DelayTime := Duration (Float (Random (RanGen)));
+            select
+                accept Finish do
+                    Finished := True;
+                end Finish;
+            or
+                delay until Clock + DelayTime;
+            end select;
+
+            buffer.Enqueue (Next);
+            Next := Next + 1;
+
+            Put_Line ("producer queued:" & Integer'Image (Next));
+        end loop;
+    end producer;
+
+    task body consumer is
+        Message   : constant String := "consumer executing";
+        Sum       : Integer         := 0;
+        Int       : Integer;
+        DelayTime : Duration;
+    begin
+        Put_Line (Message);
+        Reset (RanGen);
+
+        Main_Cycle :
+        while Sum <= 100 loop
+            buffer.Dequeue (Int);
+            Sum := Sum + Int;
+
+            Put_Line
+               ("consumer dequeued:" & Integer'Image (Int) & " Sum:" &
+                Integer'Image (Sum));
+
+            DelayTime := Duration (Float (Random (RanGen)));
+            delay until Clock + DelayTime;
+        end loop Main_Cycle;
+
+        Put_Line ("Ending the consumer");
+
+        producer.Finish;
+
+    end consumer;
 
 begin
-Put_Line(Message);
+    Put_Line (Message);
 end comm2;

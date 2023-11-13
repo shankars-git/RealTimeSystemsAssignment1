@@ -11,8 +11,10 @@ procedure comm1 is
     Message : constant String := "Process communication";
     RanGen  : Generator;
 
+    type BufferArray is array (0 .. 20) of Integer;
+
     task buffer is
-        entry Enqueue (Int : Integer);
+        entry Enqueue (Int : in Integer);
         entry Dequeue (Int : out Integer);
         entry Finish;
     end buffer;
@@ -25,7 +27,7 @@ procedure comm1 is
 
     task body buffer is
         Message            : constant String := "buffer executing";
-        Data               : array (0 .. 20) of Integer;
+        Data               : BufferArray;
         Front, Rear, Count : Natural         := 0;
         Finished           : Boolean         := False;
     begin
@@ -34,7 +36,7 @@ procedure comm1 is
         while not Finished loop
 
             select when Count < Data'Length =>
-                accept Enqueue (Int : Integer) do
+                accept Enqueue (Int : in Integer) do
                     Data (Rear) := Int;
                     Rear        := (Rear mod Data'Length) + 1;
                     Count       := Count + 1;
@@ -77,8 +79,9 @@ procedure comm1 is
             end select;
 
             buffer.Enqueue (Next);
-            Put_Line ("producer queued:" & Integer'Image (Next));
             Next := Next + 1;
+
+            Put_Line ("producer queued:" & Integer'Image (Next));
         end loop;
     end producer;
 
@@ -95,9 +98,11 @@ procedure comm1 is
         while Sum <= 100 loop
             buffer.Dequeue (Int);
             Sum := Sum + Int;
+
             Put_Line
                ("consumer dequeued:" & Integer'Image (Int) & " Sum:" &
                 Integer'Image (Sum));
+
             DelayTime := Duration (Float (Random (RanGen)));
             delay until Clock + DelayTime;
         end loop Main_Cycle;
@@ -110,6 +115,7 @@ procedure comm1 is
             Put_Line ("buffer finished before producer");
             Put_Line ("ending the consumer");
     end consumer;
+
 begin
     Put_Line (Message);
 end comm1;
