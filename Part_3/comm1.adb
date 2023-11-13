@@ -2,12 +2,14 @@
 
 with Ada.Calendar;
 with Ada.Text_IO;
-with Ada.Numerics.Discrete_Random;
+with Ada.Numerics.Float_Random;
 use Ada.Calendar;
 use Ada.Text_IO;
+use Ada.Numerics.Float_Random;
 
 procedure comm1 is
     Message : constant String := "Process communication";
+    RanGen  : Generator;
 
     task buffer is
         entry Enqueue (Int : Integer);
@@ -56,20 +58,22 @@ procedure comm1 is
     end buffer;
 
     task body producer is
-        Message  : constant String := "producer executing";
-        Next     : Integer         := 0;
-        Finished : Boolean         := False;
+        Message   : constant String := "producer executing";
+        Next      : Integer         := 0;
+        Finished  : Boolean         := False;
+        DelayTime : Duration;
     begin
         Put_Line (Message);
+        Reset (RanGen);
 
         while Next <= 20 and not Finished loop
+            DelayTime := Duration (Float (Random (RanGen)));
             select
                 accept Finish do
                     Finished := True;
                 end Finish;
             or
-                -- TODO should delay for a random amount of time.
-                delay 0.1;
+                delay until Clock + DelayTime;
             end select;
 
             buffer.Enqueue (Next);
@@ -79,11 +83,13 @@ procedure comm1 is
     end producer;
 
     task body consumer is
-        Message : constant String := "consumer executing";
-        Sum     : Integer         := 0;
-        Int     : Integer;
+        Message   : constant String := "consumer executing";
+        Sum       : Integer         := 0;
+        Int       : Integer;
+        DelayTime : Duration;
     begin
         Put_Line (Message);
+        Reset (RanGen);
 
         Main_Cycle :
         while Sum <= 100 loop
@@ -92,7 +98,8 @@ procedure comm1 is
             Put_Line
                ("consumer dequeued:" & Integer'Image (Int) & " Sum:" &
                 Integer'Image (Sum));
-            delay 0.1;
+            DelayTime := Duration (Float (Random (RanGen)));
+            delay until Clock + DelayTime;
         end loop Main_Cycle;
 
         buffer.Finish;
