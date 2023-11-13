@@ -7,55 +7,102 @@ use Ada.Calendar;
 use Ada.Text_IO;
 
 procedure comm1 is
-    Message: constant String := "Process communication";
-	task buffer is
-            -- add your task entries for communication 
-	end buffer;
+    Message : constant String := "Process communication";
 
-	task producer is
-            -- add your task entries for communication  
-	end producer;
+    task buffer is
+        entry Enqueue (Int : Integer);
+        entry Dequeue (Int : out Integer);
+        entry Finish;
+    end buffer;
 
-	task consumer is
-            -- add your task entries for communication 
-	end consumer;
+    task producer is
+        entry Finish;
+    end producer;
 
-	task body buffer is 
-		Message: constant String := "buffer executing";
-                -- change/add your local declarations here   
-	begin
-		Put_Line(Message);
-		loop
-                -- add your task code inside this loop    
-		end loop;
-	end buffer;
+    task consumer;
 
-	task body producer is 
-		Message: constant String := "producer executing";
-                -- change/add your local declarations here
-	begin
-		Put_Line(Message);
-		loop
-                -- add your task code inside this loop  
-		end loop;
-	end producer;
+    task body buffer is
+        Message            : constant String := "buffer executing";
+        Data               : array (0 .. 20) of Integer;
+        Front, Rear, Count : Natural         := 0;
+        Finished           : Boolean         := False;
+    begin
+        Put_Line (Message);
 
-	task body consumer is 
-		Message: constant String := "consumer executing";
-                -- change/add your local declarations here
-	begin
-		Put_Line(Message);
-		Main_Cycle:
-		loop 
-                -- add your task code inside this loop 
-		end loop Main_Cycle; 
+        while not Finished loop
 
-                -- add your code to stop executions of other tasks     
-		exception
-			  when TASKING_ERROR =>
-				  Put_Line("Buffer finished before producer");
-		Put_Line("Ending the consumer");
-	end consumer;
+            select when Count < Data'Length =>
+                accept Enqueue (Int : Integer) do
+                    Data (Rear) := Int;
+                    Rear        := (Rear mod Data'Length) + 1;
+                    Count       := Count + 1;
+                end Enqueue;
+
+            or when Count > 0 =>
+                accept Dequeue (Int : out Integer) do
+                    Int   := Data (Front);
+                    Front := (Front mod Data'Length) + 1;
+                    Count := Count - 1;
+                end Dequeue;
+
+            or
+                accept Finish do
+                    Finished := True;
+                end Finish;
+
+            end select;
+
+        end loop;
+    end buffer;
+
+    task body producer is
+        Message  : constant String := "producer executing";
+        Next     : Integer         := 0;
+        Finished : Boolean         := False;
+    begin
+        Put_Line (Message);
+
+        while Next <= 20 and not Finished loop
+            select
+                accept Finish do
+                    Finished := True;
+                end Finish;
+            or
+                -- TODO should delay for a random amount of time.
+                delay 0.1;
+            end select;
+
+            buffer.Enqueue (Next);
+            Put_Line ("producer queued:" & Integer'Image (Next));
+            Next := Next + 1;
+        end loop;
+    end producer;
+
+    task body consumer is
+        Message : constant String := "consumer executing";
+        Sum     : Integer         := 0;
+        Int     : Integer;
+    begin
+        Put_Line (Message);
+
+        Main_Cycle :
+        while Sum <= 100 loop
+            buffer.Dequeue (Int);
+            Sum := Sum + Int;
+            Put_Line
+               ("consumer dequeued:" & Integer'Image (Int) & " Sum:" &
+                Integer'Image (Sum));
+            delay 0.1;
+        end loop Main_Cycle;
+
+        buffer.Finish;
+        producer.Finish;
+
+    exception
+        when Tasking_Error =>
+            Put_Line ("buffer finished before producer");
+            Put_Line ("ending the consumer");
+    end consumer;
 begin
-	Put_Line(Message);
+    Put_Line (Message);
 end comm1;
