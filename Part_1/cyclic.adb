@@ -38,8 +38,10 @@ begin
         Cycle_End_Time := Cycle_End_Time + (2 * Half_Second);
         f1;
         f2;
+        -- half a second from beginning of cycle is the same as half a second to the end as the cycle is 1 sec
         delay until Cycle_End_Time - Half_Second;
         f3;
+        -- delay until one second from the end of the previous cycle
         delay until Cycle_End_Time;
     end loop;
 end cyclic;
