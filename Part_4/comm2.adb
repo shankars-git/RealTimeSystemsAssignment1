@@ -13,6 +13,7 @@ procedure comm2 is
 
     type BufferArray is array (0 .. 9) of Integer;
 
+    -- A simple FIFO buffer (queue) that only implements Enqueue and Dequeue.
     protected buffer is
         entry Enqueue (Int : in Integer);
         entry Dequeue (Int : out Integer);
@@ -21,10 +22,16 @@ procedure comm2 is
         Front, Rear, Count : Natural := 0;
     end buffer;
 
+    -- The producer task adds integers from 0 - 20 to the buffer with random
+    -- pauses between.
+    -- Accepts Finish to end its execution early.--
     task producer is
         entry Finish;
     end producer;
 
+    -- The consumer task will take integers from the buffer at irregular
+    -- intervals and sum them. Once the sum is over 100, it will send finish
+    -- signals to both the buffer and producer to terminate the program.
     task consumer;
 
     protected body buffer is
@@ -56,6 +63,8 @@ procedure comm2 is
         while Next <= 20 and not Finished loop
             DelayTime := Duration (Float (Random (RanGen)));
             select
+                -- This entry makes it possible to end the producer's
+                -- execution early.
                 accept Finish do
                     Finished := True;
                 end Finish;
@@ -96,6 +105,8 @@ procedure comm2 is
 
         Put_Line ("Consumer finished");
 
+        -- The consumer needs to send a signal to the producer to end its
+        -- execution so that the program terminates.
         producer.Finish;
 
     end consumer;

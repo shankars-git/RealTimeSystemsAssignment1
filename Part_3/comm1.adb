@@ -13,18 +13,29 @@ procedure comm1 is
 
     type BufferArray is array (0 .. 9) of Integer;
 
+    -- The buffer task is responsible for managing access to the FIFO queue.
+    -- Accepts Enqueue and Dequeue for adding or removing integers from the
+    -- buffer, and accepts Finish to end its execution loop.
     task buffer is
         entry Enqueue (Int : in Integer);
         entry Dequeue (Int : out Integer);
         entry Finish;
     end buffer;
 
+    -- The producer task adds integers from 0 - 20 to the buffer with random
+    -- pauses between.
+    -- Accepts Finish to end its execution early.
     task producer is
         entry Finish;
     end producer;
 
+    -- The consumer task will take integers from the buffer at irregular
+    -- intervals and sum them. Once the sum is over 100, it will send finish
+    -- signals to both the buffer and producer to terminate the program.
     task consumer;
 
+    -- Will continously accept Enqueue or Dequeue until it receives a Finish
+    -- signal.
     task body buffer is
         Message            : constant String := "buffer executing";
         Data               : BufferArray;
@@ -72,6 +83,8 @@ procedure comm1 is
         while Next <= 20 and not Finished loop
             DelayTime := Duration (Float (Random (RanGen)));
             select
+                -- This entry makes it possible to end the producer's
+                -- execution early.
                 accept Finish do
                     Finished := True;
                 end Finish;
@@ -97,7 +110,6 @@ procedure comm1 is
         Put_Line (Message);
         Reset (RanGen);
 
-        Main_Cycle :
         while Sum <= 100 loop
             buffer.Dequeue (Int);
             Sum := Sum + Int;
@@ -108,8 +120,10 @@ procedure comm1 is
 
             DelayTime := Duration (Float (Random (RanGen)));
             delay until Clock + DelayTime;
-        end loop Main_Cycle;
+        end loop;
 
+        -- The consumer needs to send signals to the other processes to ensure
+        -- that they end their execution too and the program can terminate.
         producer.Finish;
         buffer.Finish;
 
